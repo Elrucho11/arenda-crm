@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:pages": "vite build --base=/arenda-crm/",
+    "deploy": "vite build --base=/arenda-crm/ && cp dist/index.html dist/404.html && gh-pages -d dist -b gh-pages -m deploy",
     "lint": "oxlint",
     "preview": "vite preview"
   },
