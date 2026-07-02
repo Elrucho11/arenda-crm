@@ -1,118 +1,204 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { clients, dashboardStats, attrById } from "../data/mock";
-import { PageHeader, Stat, Badge, Avatar, Stars, Modal } from "../components/ui";
-import { phoneFmt, dateShort } from "../lib/format";
+import type { ProdClient } from "../data/mock";
+import { clients, clientStats } from "../data/mock";
+import { PageHeader, Stat, Badge, Avatar, Stars, Modal, Empty } from "../components/ui";
+import { dateShort } from "../lib/format";
+
+interface Filters {
+  q: string;
+  rating: string; // "all" | "1".."5"
+  status: string; // "all" | "Активен" | "В черном списке"
+  sort: string;   // "contact" | "name" | "rating"
+}
+
+const DEFAULT_FILTERS: Filters = { q: "", rating: "all", status: "all", sort: "contact" };
 
 export default function Clients() {
-  const nav = useNavigate();
-  const [q, setQ] = useState("");
-  const [rating, setRating] = useState("all");
-  const [status, setStatus] = useState("all");
-  const [sort, setSort] = useState("contact");
-  const [showNew, setShowNew] = useState(false);
+  const [list, setList] = useState<ProdClient[]>(clients);
 
-  const list = useMemo(() => {
-    let r = clients.filter((c) => {
-      const t = `${c.name} ${c.phone} ${c.note ?? ""} ${c.city ?? ""}`.toLowerCase();
-      if (q && !t.includes(q.toLowerCase())) return false;
-      if (rating !== "all" && c.rating < Number(rating)) return false;
-      if (status !== "all" && c.status !== status) return false;
+  // фильтры применяются по кнопке: черновик -> применённые
+  const [draft, setDraft] = useState<Filters>(DEFAULT_FILTERS);
+  const [applied, setApplied] = useState<Filters>(DEFAULT_FILTERS);
+
+  const [showNew, setShowNew] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+
+  const rows = useMemo(() => {
+    let r = list.filter((c) => {
+      if (applied.q) {
+        const t = `${c.name} ${c.phone}`.toLowerCase();
+        if (!t.includes(applied.q.trim().toLowerCase())) return false;
+      }
+      if (applied.rating !== "all" && c.rating !== Number(applied.rating)) return false;
+      if (applied.status !== "all" && c.status !== applied.status) return false;
       return true;
     });
     r = [...r].sort((a, b) =>
-      sort === "contact" ? +new Date(b.lastContactAt) - +new Date(a.lastContactAt)
-        : sort === "rating" ? b.rating - a.rating
-          : sort === "debt" ? b.debt - a.debt
-            : a.name.localeCompare(b.name)
+      applied.sort === "name" ? a.name.localeCompare(b.name, "ru")
+        : applied.sort === "rating" ? b.rating - a.rating
+          : +new Date(b.lastContactAt) - +new Date(a.lastContactAt)
     );
     return r;
-  }, [q, rating, status, sort]);
+  }, [list, applied]);
+
+  const saveNew = () => {
+    setList((prev) => [
+      {
+        id: `new-${Date.now()}`,
+        name: newName.trim() || "Без подписи",
+        phone: newPhone.trim(),
+        rating: 3,
+        status: "Активен",
+        lastContactAt: "2026-06-26",
+      },
+      ...prev,
+    ]);
+    setNewName("");
+    setNewPhone("");
+    setShowNew(false);
+  };
 
   return (
     <div>
-      <PageHeader eyebrow="База клиентов" title="Клиенты">
-        <button className="btn btn--primary" onClick={() => setShowNew(true)}><i className="ti ti-plus" aria-hidden="true" /> Новый клиент</button>
+      <PageHeader eyebrow="База" title="Клиенты">
+        <button className="btn btn--primary" onClick={() => setShowNew(true)}>
+          <i className="ti ti-plus" aria-hidden="true" /> Новый клиент
+        </button>
       </PageHeader>
 
       <div className="grid grid-4 mb-20">
-        <Stat tone="orange" icon="users" label="Всего клиентов" value={dashboardStats.totalClients} />
-        <Stat tone="green" icon="user-check" label="Активных" value={dashboardStats.totalClients - dashboardStats.blacklistCount} />
-        <Stat tone="amber" icon="alert-triangle" label="Должников" value={clients.filter((c) => c.debt > 0).length} />
-        <Stat tone="red" icon="ban" label="В чёрном списке" value={dashboardStats.blacklistCount} />
+        <Stat tone="orange" icon="users" label="Всего клиентов" value={clientStats.total} />
+        <Stat tone="green" icon="user-check" label="Активных" value={clientStats.active} />
+        <Stat tone="amber" icon="phone" label="С звонками" value={clientStats.withCalls} />
+        <Stat tone="red" icon="ban" label="В черном списке" value={clientStats.blacklisted} />
       </div>
 
       <div className="card card--pad mb-16">
         <div className="filters-grid">
           <div>
             <label className="field-label">Поиск</label>
-            <input className="input" placeholder="Имя, телефон, заметка…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <input
+              className="input"
+              placeholder="Имя, телефон, компания..."
+              value={draft.q}
+              onChange={(e) => setDraft({ ...draft, q: e.target.value })}
+            />
           </div>
           <div>
             <label className="field-label">Рейтинг</label>
-            <select className="input" value={rating} onChange={(e) => setRating(e.target.value)}>
-              <option value="all">Все</option><option value="4">4+ ★</option><option value="3">3+ ★</option><option value="2">2+ ★</option>
+            <select className="input" value={draft.rating} onChange={(e) => setDraft({ ...draft, rating: e.target.value })}>
+              <option value="all">Все</option>
+              <option value="5">5</option>
+              <option value="4">4</option>
+              <option value="3">3</option>
+              <option value="2">2</option>
+              <option value="1">1</option>
             </select>
           </div>
           <div>
             <label className="field-label">Статус</label>
-            <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="all">Все</option><option value="active">Активные</option><option value="blacklist">Чёрный список</option>
+            <select className="input" value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value })}>
+              <option value="all">Все</option>
+              <option value="Активен">Активен</option>
+              <option value="В черном списке">В черном списке</option>
             </select>
           </div>
           <div>
             <label className="field-label">Сортировка</label>
-            <select className="input" value={sort} onChange={(e) => setSort(e.target.value)}>
-              <option value="contact">Последний контакт</option><option value="rating">Рейтинг</option><option value="debt">Долг</option><option value="name">Имя</option>
+            <select className="input" value={draft.sort} onChange={(e) => setDraft({ ...draft, sort: e.target.value })}>
+              <option value="contact">Последний контакт</option>
+              <option value="name">Имя</option>
+              <option value="rating">Рейтинг</option>
             </select>
           </div>
+        </div>
+        <div className="row gap-10 wrap mt-16">
+          <button className="btn btn--primary" onClick={() => setApplied(draft)}>
+            <i className="ti ti-filter" aria-hidden="true" /> Применить фильтры
+          </button>
+          <button
+            className="btn btn--dark"
+            onClick={() => { setDraft(DEFAULT_FILTERS); setApplied(DEFAULT_FILTERS); }}
+          >
+            Сбросить
+          </button>
         </div>
       </div>
 
       <div className="card" style={{ overflow: "hidden" }}>
-        <table className="tbl">
-          <thead>
-            <tr><th>Клиент</th><th>Контакты</th><th>Рейтинг</th><th>Долг</th><th>Статус</th></tr>
-          </thead>
-          <tbody>
-            {list.map((c) => (
-              <tr key={c.id} style={{ cursor: "pointer" }} onClick={() => nav(`/clients/${c.id}`)}>
-                <td>
-                  <div className="row gap-12">
-                    <Avatar name={c.name} size={36} />
-                    <div>
-                      <div className="fw7">{c.name}</div>
-                      {c.note && <div className="text-dim f12" style={{ maxWidth: 360, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.note}</div>}
-                      <div className="row gap-6 wrap mt-8">
-                        {c.tags.slice(0, 2).map((t) => { const a = attrById(t); return a ? <span key={t} className="badge badge--gray">{a.name}</span> : null; })}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <div className="fw7 f13">{phoneFmt(c.phone)}</div>
-                  <div className="text-dim f12">{c.city ?? "—"} · {dateShort(c.lastContactAt).slice(0, 5)}</div>
-                </td>
-                <td><Stars value={c.rating} /></td>
-                <td>{c.debt > 0 ? <span style={{ color: "var(--red)", fontWeight: 700 }}>{new Intl.NumberFormat("ru-RU").format(c.debt)} ₽</span> : <span className="text-dim">—</span>}</td>
-                <td>{c.status === "blacklist" ? <Badge tone="red">Чёрный список</Badge> : <Badge tone="green">Активен</Badge>}</td>
+        {rows.length === 0 ? (
+          <Empty icon="users" text="Клиенты не найдены" />
+        ) : (
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Клиент</th>
+                <th>Контакты</th>
+                <th>Рейтинг</th>
+                <th>Статус</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((c) => (
+                <tr key={c.id}>
+                  <td>
+                    <div className="row gap-12">
+                      <Avatar name={c.name} size={36} />
+                      <div className="fw7" style={{ maxWidth: 480, lineHeight: 1.4 }}>{c.name}</div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="fw7 f13">{c.phone}</div>
+                    <div className="text-dim f12">{dateShort(c.lastContactAt)}</div>
+                  </td>
+                  <td>
+                    <div className="fw7 f13">{c.rating}/5</div>
+                    <Stars value={c.rating} />
+                  </td>
+                  <td>
+                    {c.status === "В черном списке"
+                      ? <Badge tone="red">В черном списке</Badge>
+                      : <Badge tone="green">Активен</Badge>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {showNew && (
-        <Modal title="Новый клиент" onClose={() => setShowNew(false)}
-          footer={<><button className="btn btn--outline" onClick={() => setShowNew(false)}>Отмена</button><button className="btn btn--primary" onClick={() => setShowNew(false)}>Сохранить</button></>}>
+        <Modal
+          title="Новый клиент"
+          onClose={() => setShowNew(false)}
+          footer={
+            <>
+              <button className="btn btn--outline" onClick={() => setShowNew(false)}>Отмена</button>
+              <button className="btn btn--primary" onClick={saveNew}>Сохранить</button>
+            </>
+          }
+        >
           <div className="grid" style={{ gap: 12 }}>
-            <div><label className="field-label">Имя / компания</label><input className="input" placeholder="Напр. Морозов А." /></div>
-            <div><label className="field-label">Телефон</label><input className="input" placeholder="+7 ___ ___-__-__" /></div>
-            <div><label className="field-label">Город / адрес</label><input className="input" placeholder="Тюмень" /></div>
-            <div><label className="field-label">Источник</label>
-              <select className="input"><option>Авито</option><option>Яндекс</option><option>Сайт</option><option>Сарафан</option></select>
+            <div>
+              <label className="field-label">Имя / подпись</label>
+              <textarea
+                className="input"
+                rows={2}
+                placeholder="Свободная подпись клиента"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+              />
             </div>
-            <div><label className="field-label">Заметка</label><textarea className="input" rows={2} placeholder="Что хотел, особенности…" /></div>
+            <div>
+              <label className="field-label">Телефон</label>
+              <input
+                className="input"
+                placeholder="+7 ___ ___-__-__"
+                value={newPhone}
+                onChange={(e) => setNewPhone(e.target.value)}
+              />
+            </div>
           </div>
         </Modal>
       )}

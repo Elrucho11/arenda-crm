@@ -1,221 +1,234 @@
 import { useState } from "react";
-import type { CallAttribute } from "../types";
-import { attributes as initialAttributes } from "../data/mock";
-import { PageHeader, Stat, Badge, Modal, Empty } from "../components/ui";
+import type { FormEvent } from "react";
+import { PageHeader, Badge, Modal, Empty } from "../components/ui";
+import { attributes as seedAttributes } from "../data/mock";
+import type { CallAttribute } from "../data/mock";
 
-type Category = CallAttribute["category"];
+function AttrPill({ attr }: { attr: CallAttribute }) {
+  return (
+    <span
+      style={{
+        background: attr.color,
+        color: "#fff",
+        padding: "4px 12px",
+        borderRadius: 999,
+        fontWeight: 700,
+        fontSize: 12.5,
+        display: "inline-block",
+      }}
+    >
+      {attr.name}
+    </span>
+  );
+}
 
-const CATEGORIES: { key: Category; label: string }[] = [
-  { key: "quality", label: "Качество клиента" },
-  { key: "type", label: "Тип звонка" },
-  { key: "source", label: "Источник" },
-  { key: "stage", label: "Этап сделки" },
-];
-
-const STAT_TONE: Record<Category, "orange" | "green" | "amber" | "accent"> = {
-  quality: "orange",
-  type: "green",
-  source: "amber",
-  stage: "accent",
-};
+function ColorSwatch({ color }: { color: string }) {
+  return (
+    <span className="row gap-8" style={{ alignItems: "center", display: "inline-flex" }}>
+      <span
+        style={{
+          width: 16,
+          height: 16,
+          borderRadius: "50%",
+          background: color,
+          display: "inline-block",
+          flex: "none",
+          border: "1px solid var(--line)",
+        }}
+      />
+      <span className="text-dim f13">{color}</span>
+    </span>
+  );
+}
 
 export default function Attributes() {
-  const [items, setItems] = useState<CallAttribute[]>(initialAttributes);
-  const [creating, setCreating] = useState(false);
+  const [list, setList] = useState<CallAttribute[]>(() => [...seedAttributes]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [viewAttr, setViewAttr] = useState<CallAttribute | null>(null);
 
-  // поля формы создания
+  // Поля формы создания
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<Category>("quality");
-  const [color, setColor] = useState("#fff1e8");
+  const [color, setColor] = useState("#ff6a00");
   const [icon, setIcon] = useState("");
 
-  function countBy(cat: Category) {
-    return items.filter((a) => a.category === cat).length;
-  }
-
-  function removeAttr(id: string) {
-    setItems((prev) => prev.filter((a) => a.id !== id));
-  }
-
-  function resetForm() {
+  function openCreate() {
     setName("");
-    setCategory("quality");
-    setColor("#fff1e8");
+    setColor("#ff6a00");
     setIcon("");
+    setCreateOpen(true);
   }
 
-  function createAttr() {
-    const next: CallAttribute = {
+  function handleCreate(e?: FormEvent) {
+    e?.preventDefault();
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const attr: CallAttribute = {
       id: "a" + Date.now(),
-      name: name.trim() || "Без названия",
+      name: trimmed,
       color,
-      icon: icon.trim() || "tag",
-      category,
+      icon: icon.trim(),
       active: true,
     };
-    setItems((prev) => [...prev, next]);
-    setCreating(false);
-    resetForm();
+    setList((prev) => [attr, ...prev]);
+    setCreateOpen(false);
+  }
+
+  function handleDelete(id: string) {
+    setList((prev) => prev.filter((a) => a.id !== id));
   }
 
   return (
     <div>
-      <PageHeader eyebrow="Метки звонков" title="Атрибуты" accent="звонков">
-        <button className="btn btn--primary" onClick={() => setCreating(true)}>
+      <PageHeader eyebrow="Метки" title="Атрибуты" accent="звонков">
+        <button className="btn btn--primary" onClick={openCreate}>
           <i className="ti ti-plus" aria-hidden="true" /> Создать атрибут
         </button>
       </PageHeader>
 
-      <div className="grid grid-4 mb-20">
-        {CATEGORIES.map((c) => (
-          <Stat
-            key={c.key}
-            label={c.label}
-            value={countBy(c.key)}
-            icon="tag"
-            tone={STAT_TONE[c.key]}
-          />
-        ))}
+      <div className="card">
+        {list.length === 0 ? (
+          <Empty icon="tag" text="Атрибутов пока нет" />
+        ) : (
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Атрибут</th>
+                <th>Цвет</th>
+                <th>Иконка</th>
+                <th>Статус</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((attr) => (
+                <tr key={attr.id}>
+                  <td>
+                    <AttrPill attr={attr} />
+                  </td>
+                  <td>
+                    <ColorSwatch color={attr.color} />
+                  </td>
+                  <td>{attr.icon ? <span className="f13">{attr.icon}</span> : null}</td>
+                  <td>
+                    <Badge tone="green">Активен</Badge>
+                  </td>
+                  <td>
+                    <span className="row gap-12" style={{ display: "inline-flex" }}>
+                      <button
+                        onClick={() => setViewAttr(attr)}
+                        style={{
+                          color: "var(--orange)",
+                          fontWeight: 700,
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: 0,
+                          font: "inherit",
+                          fontSize: 13.5,
+                        }}
+                      >
+                        Просмотр
+                      </button>
+                      <button
+                        onClick={() => handleDelete(attr.id)}
+                        style={{
+                          color: "var(--red)",
+                          fontWeight: 700,
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: 0,
+                          font: "inherit",
+                          fontSize: 13.5,
+                        }}
+                      >
+                        Удалить
+                      </button>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
-      {CATEGORIES.map((c) => {
-        const rows = items.filter((a) => a.category === c.key);
-        return (
-          <div key={c.key} className="mb-20">
-            <div className="section-label">{c.label}</div>
-            <div className="card">
-              {rows.length === 0 ? (
-                <Empty icon="tag" text="Нет атрибутов в этой категории" />
-              ) : (
-                <table className="tbl">
-                  <thead>
-                    <tr>
-                      <th>Атрибут</th>
-                      <th>Иконка</th>
-                      <th>Статус</th>
-                      <th>Действия</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((a) => (
-                      <tr key={a.id}>
-                        <td>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 6,
-                              background: a.color,
-                              color: "#3a3f49",
-                              padding: "4px 12px",
-                              borderRadius: 999,
-                              fontWeight: 700,
-                            }}
-                          >
-                            <i className={`ti ti-${a.icon}`} aria-hidden="true" />
-                            {a.name}
-                          </span>
-                        </td>
-                        <td>
-                          <span className="row gap-8">
-                            <i className={`ti ti-${a.icon}`} aria-hidden="true" style={{ fontSize: 16 }} />
-                            <code className="f13 text-dim">{a.icon}</code>
-                          </span>
-                        </td>
-                        <td>
-                          {a.active ? (
-                            <Badge tone="green" dot>Активен</Badge>
-                          ) : (
-                            <Badge tone="gray">Выкл</Badge>
-                          )}
-                        </td>
-                        <td>
-                          <div className="row gap-8">
-                            <button className="btn btn--outline btn--sm" style={{ color: "var(--orange)" }}>
-                              Просмотр
-                            </button>
-                            <button className="btn btn--danger btn--sm" onClick={() => removeAttr(a.id)}>
-                              Удалить
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        );
-      })}
-
-      {creating && (
+      {createOpen && (
         <Modal
-          title="Новый атрибут"
-          onClose={() => {
-            setCreating(false);
-            resetForm();
-          }}
+          title="Создать атрибут"
+          onClose={() => setCreateOpen(false)}
           footer={
             <>
-              <button
-                className="btn btn--outline"
-                onClick={() => {
-                  setCreating(false);
-                  resetForm();
-                }}
-              >
+              <button className="btn btn--outline" onClick={() => setCreateOpen(false)}>
                 Отмена
               </button>
-              <button className="btn btn--primary" onClick={createAttr}>
+              <button className="btn btn--primary" onClick={() => handleCreate()}>
                 Создать
               </button>
             </>
           }
         >
-          <div className="grid">
+          <form onSubmit={handleCreate}>
             <div>
-              <label className="field-label">Название</label>
+              <label className="field-label" htmlFor="attr-name">Название</label>
               <input
+                id="attr-name"
                 className="input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Например, Должник"
+                placeholder="Название атрибута"
+                autoFocus
               />
             </div>
-            <div>
-              <label className="field-label">Категория</label>
-              <select
+            <div className="mt-12">
+              <label className="field-label" htmlFor="attr-color">Цвет</label>
+              <input
+                id="attr-color"
+                type="color"
                 className="input"
-                value={category}
-                onChange={(e) => setCategory(e.target.value as Category)}
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c.key} value={c.key}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
+                style={{ height: 44 }}
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+              />
             </div>
-            <div className="grid grid-2">
-              <div>
-                <label className="field-label">Цвет</label>
-                <input
-                  className="input"
-                  type="color"
-                  value={color}
-                  onChange={(e) => setColor(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="field-label">Иконка</label>
-                <input
-                  className="input"
-                  value={icon}
-                  onChange={(e) => setIcon(e.target.value)}
-                  placeholder="tag"
-                />
-              </div>
+            <div className="mt-12">
+              <label className="field-label" htmlFor="attr-icon">Иконка</label>
+              <input
+                id="attr-icon"
+                className="input"
+                value={icon}
+                onChange={(e) => setIcon(e.target.value)}
+                placeholder="например: x-circle"
+              />
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {viewAttr && (
+        <Modal title="Просмотр атрибута" onClose={() => setViewAttr(null)}>
+          <div>
+            <div className="section-label">Атрибут</div>
+            <div className="mt-8">
+              <AttrPill attr={viewAttr} />
+            </div>
+          </div>
+          <div className="mt-16">
+            <div className="section-label">Цвет</div>
+            <div className="mt-8">
+              <ColorSwatch color={viewAttr.color} />
+            </div>
+          </div>
+          <div className="mt-16">
+            <div className="section-label">Иконка</div>
+            <div className="mt-8 f13">
+              {viewAttr.icon ? viewAttr.icon : <span className="text-dim">—</span>}
+            </div>
+          </div>
+          <div className="mt-16">
+            <div className="section-label">Статус</div>
+            <div className="mt-8">
+              <Badge tone="green">Активен</Badge>
             </div>
           </div>
         </Modal>

@@ -20,7 +20,7 @@ const DECKS: Record<string, { weight: number; rate: number }> = {
 const EXTRAS: Record<string, { weight: number; rate: number }> = {
   "Пятка": { weight: 2, rate: 1 },
   "Кронштейн": { weight: 1.5, rate: 1 },
-  "Винтовая опора 350": { weight: 6, rate: 4 },
+  "винтовая опора 350": { weight: 6, rate: 4 },
 };
 const MIN_ORDER = 1500;
 
@@ -59,9 +59,9 @@ export default function Calculations() {
 
   return (
     <div>
-      <PageHeader eyebrow="Калькулятор аренды" title="Расчёты">
+      <PageHeader eyebrow="Калькулятор аренды" title="Расчеты">
         {view === "list"
-          ? <button className="btn btn--primary" onClick={() => setView("pick")}><i className="ti ti-calculator" aria-hidden="true" /> Добавить расчёт</button>
+          ? <button className="btn btn--primary" onClick={() => setView("pick")}><i className="ti ti-calculator" aria-hidden="true" /> Добавить расчет</button>
           : <button className="btn btn--dark" onClick={() => setView("list")}><i className="ti ti-arrow-left" aria-hidden="true" /> Назад</button>}
       </PageHeader>
 
@@ -72,7 +72,7 @@ export default function Calculations() {
               <CalcCard key={c.id} calc={c} open={expanded.has(c.id)} onToggle={() => toggle(c.id)} onDelete={() => remove(c.id)} />
             ))}
           </div>
-        ) : <Empty icon="calculator" text="Пока нет расчётов" />
+        ) : <Empty icon="calculator" text="Пока нет расчетов" />
       )}
 
       {view === "pick" && (
@@ -83,7 +83,7 @@ export default function Calculations() {
                 <div className="fw8 f18">{cat === "Леса" ? "Строительные леса" : "Вышки-туры"}</div>
                 <div className="text-dim f13 mt-8">{cat === "Леса" ? "Комплекты, метры, настилы, доп. элементы" : "По высоте и количеству"}</div>
               </div>
-              <button className="btn btn--primary" onClick={() => { setCategory(cat); setView("form"); }}>Создать расчёт</button>
+              <button className="btn btn--primary" onClick={() => { setCategory(cat); setView("form"); }}>Создать расчет</button>
             </div>
           ))}
         </div>
@@ -102,7 +102,7 @@ function CalcCard({ calc, open, onToggle, onDelete }: { calc: Calculation; open:
     <div className="card card--pad">
       <div className="row between wrap gap-10">
         <div className="row gap-10 wrap" style={{ alignItems: "center" }}>
-          <b className="f15">Расчёт #{calc.id}</b>
+          <b className="f15">Расчет #{calc.id}</b>
           <Badge tone="orange">{calc.category === "Леса" ? "Строительные леса" : calc.category}</Badge>
           <Badge tone="gray">{calc.kind}</Badge>
         </div>
@@ -121,6 +121,10 @@ function CalcCard({ calc, open, onToggle, onDelete }: { calc: Calculation; open:
       <div className="f13 fw7 mt-8">Аренда: {dateShort(calc.startDate)} — {dateShort(calc.endDate)} ({calc.days} дней)</div>
 
       {open && (
+        <>
+        {calc.kind === "Комплекты" && calc.lines[0] && (
+          <div className="fw7 f14 mt-16">Комплектов: {calc.lines[0].qty} шт</div>
+        )}
         <div className="grid grid-2 mt-16" style={{ alignItems: "start" }}>
           <div className="card" style={{ overflow: "hidden" }}>
             <table className="tbl">
@@ -138,13 +142,14 @@ function CalcCard({ calc, open, onToggle, onDelete }: { calc: Calculation; open:
             <SummaryRow label="Доставка" value={money(calc.deliveryPrice)} />
             <div style={{ borderTop: "1px solid var(--line)", margin: "8px 0" }} />
             <SummaryRow label="Итого" value={money(calc.total + calc.discount)} />
-            <SummaryRow label="С учётом скидки" value={money(calc.total)} strong />
+            <SummaryRow label="С учетом скидки" value={money(calc.total)} strong />
             <div className="row gap-8 mt-16">
               <button className="btn btn--primary btn--sm"><i className="ti ti-edit" aria-hidden="true" /> Редактировать</button>
-              <button className="btn btn--danger btn--sm" onClick={onDelete}><i className="ti ti-trash" aria-hidden="true" /> Удалить расчёт</button>
+              <button className="btn btn--danger btn--sm" onClick={onDelete}><i className="ti ti-trash" aria-hidden="true" /> Удалить расчет</button>
             </div>
           </div>
         </div>
+        </>
       )}
     </div>
   );
@@ -240,7 +245,7 @@ function CalcForm({ category, nextId, onSave, onSwitch }: {
       category,
       kind: category === "Леса" ? kind : "Комплекты",
       createdAt: new Date().toISOString(),
-      author: "Pavel",
+      author: "Павел",
       startDate: start, endDate: end, days,
       lines: calc.lines.map((l) => ({ name: l.name, qty: l.qty, unit: l.unit })),
       fullPrice: calc.fullPrice,
@@ -365,8 +370,9 @@ function CalcForm({ category, nextId, onSave, onSwitch }: {
         </div>
 
         <div className="card card--pad">
-          <SummaryRow label="Базовый расчёт (в сутки)" value={money(calc.rentPerDay)} />
-          <SummaryRow label="Мин. стоимость заказа" value={money(MIN_ORDER)} />
+          <SummaryRow label="Базовый расчет" value={money(calc.rentPerDay)} />
+          <SummaryRow label="Мин. стоимость" value={money(MIN_ORDER)} />
+          <SummaryRow label="Мин. за количество" value={money(0)} />
           <SummaryRow label="Полная стоимость" value={money(calc.fullPrice)} />
           <div style={{ borderTop: "1px solid var(--line)", margin: "8px 0" }} />
           <SummaryRow label="Стоимость в сутки" value={money(calc.perDay)} />
@@ -374,9 +380,9 @@ function CalcForm({ category, nextId, onSave, onSwitch }: {
           <SummaryRow label="Доставка" value={money(calc.deliveryPrice)} />
           {calc.disc > 0 && <SummaryRow label={`Скидка ${discount}%`} value={"−" + money0(calc.disc) + " ₽"} />}
           <div style={{ borderTop: "1px solid var(--line)", margin: "8px 0" }} />
-          <SummaryRow label="Итого без скидки" value={money(calc.total + calc.deliveryPrice)} />
-          <SummaryRow label="С учётом скидки" value={money(calc.withDiscount)} strong />
-          <button className="btn btn--primary btn--block mt-16" onClick={save}><i className="ti ti-device-floppy" aria-hidden="true" /> Сохранить расчёт</button>
+          <SummaryRow label="Итого, без учета скидки" value={money(calc.total + calc.deliveryPrice)} />
+          <SummaryRow label="С учетом скидки" value={money(calc.withDiscount)} strong />
+          <button className="btn btn--primary btn--block mt-16" onClick={save}><i className="ti ti-device-floppy" aria-hidden="true" /> Сохранить расчет</button>
         </div>
       </div>
     </div>
