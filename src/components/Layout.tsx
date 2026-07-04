@@ -1,5 +1,8 @@
 import { NavLink, Outlet, Link } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle";
+import { chatThreads } from "../data/chat";
+
+const unreadTotal = chatThreads.reduce((s, t) => s + t.unread, 0);
 
 // Боковое меню — сгруппировано, пункты один в один с боевым сайтом
 const NAV_GROUPS = [
@@ -8,6 +11,7 @@ const NAV_GROUPS = [
     items: [
       { to: "/", label: "Панель", icon: "layout-dashboard", end: true },
       { to: "/calls", label: "Вызовы", icon: "phone-call" },
+      { to: "/chats", label: "Чат", icon: "message-circle", badge: unreadTotal },
       { to: "/attributes", label: "Атрибуты звонков", icon: "tag" },
       { to: "/clients", label: "Клиентская база", icon: "users" },
       { to: "/blacklist", label: "Чёрный список", icon: "ban" },
@@ -53,6 +57,7 @@ export default function Layout() {
                   <span className="side-bar" aria-hidden="true" />
                   <i className={`ti ti-${n.icon}`} aria-hidden="true" />
                   <span>{n.label}</span>
+                  {n.badge ? <span className="count-badge" style={{ marginLeft: "auto", minWidth: 18, height: 18, fontSize: 10, background: "var(--orange)" }}>{n.badge}</span> : null}
                 </NavLink>
               ))}
             </div>
