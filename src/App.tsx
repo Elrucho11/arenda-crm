@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Calls from "./pages/Calls";
+import NumberDetail from "./pages/NumberDetail";
 import Clients from "./pages/Clients";
 import Calculations from "./pages/Calculations";
 import Delivery from "./pages/Delivery";
@@ -15,6 +16,7 @@ export default function App() {
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
         <Route path="calls" element={<Calls />} />
+        <Route path="calls/:phone" element={<NumberDetail />} />
         <Route path="clients" element={<Clients />} />
         <Route path="calculations" element={<Calculations />} />
         <Route path="delivery" element={<Delivery />} />

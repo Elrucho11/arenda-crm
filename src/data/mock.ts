@@ -1,5 +1,6 @@
 // ===== Данные, снятые с боевого calls.plntr.store (1:1) =====
 import type { Calculation, Equipment } from "../types";
+import { phoneKey } from "../lib/format";
 
 // --- Операторы (сотрудники) ---
 export interface Employee {
@@ -93,6 +94,32 @@ export const calls: ProdCall[] = [
   { id: "c36", dateTime: "2026-06-20T19:03:00", direction: "incoming", status: "Пропущен", operator: "Павел", clientLabel: "виброплита в аренду звонил 20.06.2026", clientPhone: "+79199338192", count: 2, talkSec: 0, waitSec: 16, attributeIds: [] },
 ];
 
+// --- Архив звонков по номеру ---
+// Более старые звонки с теми же номерами (демонстрация истории номера).
+// Не попадают в общую ленту «Вызовы», подтягиваются только на странице номера.
+// Когда подключим Telphin — сюда встанет реальная история из АТС.
+export const callArchive: ProdCall[] = [
+  // +79058264734 — «виброплита в аренду» (в ленте c10)
+  { id: "h1", dateTime: "2026-06-21T11:12:00", direction: "incoming", status: "Отвечен", operator: "Павел", clientLabel: "виброплита 50кг, уточнял залог", clientPhone: "+79058264734", count: 11, talkSec: 64, waitSec: 9, attributeIds: ["a4"] },
+  { id: "h2", dateTime: "2026-06-18T16:40:00", direction: "outgoing", status: "Отвечен", operator: "Александр", clientPhone: "+79058264734", count: 11, talkSec: 25, waitSec: 5, attributeIds: [] },
+  { id: "h3", dateTime: "2026-06-15T10:05:00", direction: "incoming", status: "Пропущен", operator: "Павел", clientPhone: "+79058264734", count: 11, talkSec: 0, waitSec: 12, attributeIds: [] },
+  { id: "h4", dateTime: "2026-05-30T09:18:00", direction: "incoming", status: "Отвечен", operator: "Павел", clientLabel: "первый звонок, спрашивал наличие", clientPhone: "+79058264734", count: 11, talkSec: 51, waitSec: 7, attributeIds: [] },
+  // +79667622227 — исходящий в ленте (c3)
+  { id: "h5", dateTime: "2026-06-24T13:20:00", direction: "incoming", status: "Отвечен", operator: "Александр", clientPhone: "+79667622227", count: 3, talkSec: 88, waitSec: 4, attributeIds: [] },
+  { id: "h6", dateTime: "2026-06-20T15:47:00", direction: "incoming", status: "Пропущен", operator: "Александр", clientPhone: "+79667622227", count: 3, talkSec: 0, waitSec: 6, attributeIds: [] },
+  // +79224753531 — «денис ип попов вышка 6м» (c4)
+  { id: "h7", dateTime: "2026-06-19T12:03:00", direction: "incoming", status: "Отвечен", operator: "Александр", clientLabel: "денис, вышка 6м, обсуждали продление", clientPhone: "+79224753531", count: 3, talkSec: 73, waitSec: 8, attributeIds: ["a4"] },
+  { id: "h8", dateTime: "2026-06-10T18:22:00", direction: "outgoing", status: "Отвечен", operator: "Александр", clientPhone: "+79224753531", count: 3, talkSec: 40, waitSec: 6, attributeIds: [] },
+];
+
+// Все звонки по номеру (лента + архив), от новых к старым.
+export function callsForNumber(phone: string): ProdCall[] {
+  const key = phoneKey(phone);
+  return [...calls, ...callArchive]
+    .filter((c) => phoneKey(c.clientPhone) === key)
+    .sort((a, b) => (a.dateTime < b.dateTime ? 1 : -1));
+}
+
 // --- Быстрые действия (счётчики) ---
 export const quickStats = { missed: 19, important: 13, callback: 2, orders: 24 };
 
@@ -130,6 +157,7 @@ export interface BlacklistEntry {
   until: string | "permanent";
   remains?: string;          // «осталось: …»
 }
+export const blacklistReasons = ["Не указана", "Иногородний", "Осмотр/кинокрю", "Спам", "Неадекват", "Разовый осмотр"] as const;
 export const blacklist: BlacklistEntry[] = [
   { id: "b1", when: "2026-06-22T13:04:00", label: "геосм геосинтетика звонил 22.05.2026", phone: "+79063592585", by: "Александр", reason: "Не указана", until: "2026-07-22T13:04:00", remains: "через 3 недели" },
   { id: "b2", when: "2026-06-22T10:01:00", label: "вышка 8м на два дня тобольск звонил 22.06.2026", phone: "+79191452351", by: "Александр", reason: "Не указана", until: "2026-07-22T10:01:00", remains: "через 3 недели" },

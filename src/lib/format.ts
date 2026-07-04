@@ -45,6 +45,23 @@ export function phoneFmt(p: string): string {
   return p;
 }
 
+// Канонический ключ номера — только цифры, ведущая 8 приводится к 7.
+// "+79055373211", "89055373211", "8 (905) 537-32-11" → "79055373211".
+export function phoneKey(p: string): string {
+  let d = (p || "").replace(/\D/g, "");
+  if (d.length === 11 && d[0] === "8") d = "7" + d.slice(1);
+  return d;
+}
+
+// Отображение номера в шапке страницы — как на проде: 8(905)537-32-11.
+export function phoneHeader(p: string): string {
+  const d = phoneKey(p);
+  if (d.length === 11) {
+    return `8(${d.slice(1, 4)})${d.slice(4, 7)}-${d.slice(7, 9)}-${d.slice(9)}`;
+  }
+  return p;
+}
+
 export function daysLeft(iso: string): number {
   const now = new Date("2026-06-26T00:00:00").getTime();
   const then = new Date(iso).getTime();

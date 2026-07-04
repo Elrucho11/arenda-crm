@@ -1,6 +1,7 @@
+import { useNavigate } from "react-router-dom";
 import type { ProdCall } from "../data/mock";
 import { employees, attrById } from "../data/mock";
-import { timeHM, dateShort } from "../lib/format";
+import { timeHM, dateShort, phoneKey } from "../lib/format";
 
 // Таблица звонков — колонки один в один с продом:
 // ДАТА/ВРЕМЯ | КТО | КОМУ | СТАТУС/НАПРАВЛЕНИЕ | ДЛИТЕЛЬНОСТЬ | АТРИБУТЫ
@@ -48,11 +49,15 @@ function ClientCell({ call }: { call: ProdCall }) {
 }
 
 export function CallRow({ call }: { call: ProdCall }) {
+  const navigate = useNavigate();
   const incoming = call.direction === "incoming";
   const statusColor = call.status === "Отвечен" ? "var(--green)" : "var(--red)";
   const tags = call.attributeIds.map((a) => attrById(a)).filter(Boolean);
+  const key = phoneKey(call.clientPhone);
+  const openNumber = () => { if (key) navigate(`/calls/${key}`); };
   return (
-    <tr>
+    <tr onClick={openNumber} style={{ cursor: key ? "pointer" : "default" }} title={key ? "Открыть историю номера" : undefined}
+      tabIndex={key ? 0 : undefined} onKeyDown={(e) => { if (e.key === "Enter") openNumber(); }}>
       <td style={{ whiteSpace: "nowrap" }}>
         <div className="fw7">{timeHM(call.dateTime)}</div>
         <div className="text-dim f12">{dateShort(call.dateTime)}</div>
