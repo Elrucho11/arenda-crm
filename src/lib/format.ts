@@ -53,6 +53,17 @@ export function phoneKey(p: string): string {
   return d;
 }
 
+// Ключ для поиска по номеру — значимые цифры без кода страны 7/8.
+// "9129271637", "+79129271637", "89129271637" → все дают "9129271637".
+// Частичный ввод тоже нормализуется: "+7 905" / "8 905" → "905"
+// (мобильные РФ начинаются с 9, поэтому ведущие 7/8 — это код страны).
+export function phoneSearchKey(p: string): string {
+  let d = (p || "").replace(/\D/g, "");
+  if (d.length > 10) return d.slice(-10);           // полный номер → последние 10
+  if (d.length > 1 && (d[0] === "7" || d[0] === "8")) d = d.slice(1); // частичный: убрать код
+  return d;
+}
+
 // Отображение номера в шапке страницы — как на проде: 8(905)537-32-11.
 export function phoneHeader(p: string): string {
   const d = phoneKey(p);

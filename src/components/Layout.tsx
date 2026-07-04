@@ -1,6 +1,7 @@
 import { NavLink, Outlet, Link } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle";
 import { LogoFull, LogoMark } from "./Logo";
+import TopSearch from "./TopSearch";
 import { chatThreads } from "../data/chat";
 
 const unreadTotal = chatThreads.reduce((s, t) => s + t.unread, 0);
@@ -77,10 +78,7 @@ export default function Layout() {
       {/* ===== Основная колонка ===== */}
       <div className="app-main">
         <header className="topbar">
-          <div className="topbar-search">
-            <i className="ti ti-search" aria-hidden="true" />
-            <input placeholder="Поиск по номеру, клиенту…" />
-          </div>
+          <TopSearch />
           <div className="topbar-actions">
             <ThemeToggle />
             <div className="topbar-user">
