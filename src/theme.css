@@ -78,6 +78,8 @@ input, select, textarea, button { font-family: inherit; }
   border-right: 1px solid rgba(255,255,255,.05);
 }
 .side-brand { display: flex; align-items: center; gap: 11px; padding: 22px 20px 18px; }
+.side-brand .brand-full { min-width: 0; }
+.side-brand .brand-mark { display: none; }
 .side-mark { width: 38px; height: 38px; border-radius: 11px; background: var(--orange); display: grid; place-items: center; color: #fff; font-size: 20px; box-shadow: 0 6px 16px -6px var(--orange); flex: none; }
 .side-brand-text { display: flex; flex-direction: column; line-height: 1.15; }
 .side-brand-text b { font-weight: 800; font-size: 15.5px; color: #fff; letter-spacing: -.3px; }
@@ -309,6 +311,9 @@ button.stat { font-family: inherit; width: 100%; text-align: left; cursor: point
 @media (max-width: 900px) {
   .sidebar { width: 68px; }
   .side-brand-text, .side-group-title, .side-link span:not(.side-bar), .side-user-text { display: none; }
+  .side-brand { padding-left: 14px; padding-right: 14px; justify-content: center; }
+  .side-brand .brand-full { display: none; }
+  .side-brand .brand-mark { display: block; }
   .side-link { justify-content: center; }
   .topbar, .page, .app-footer { padding-left: 18px; padding-right: 18px; }
 }

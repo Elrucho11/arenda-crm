@@ -1,5 +1,6 @@
 import { NavLink, Outlet, Link } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle";
+import { LogoFull, LogoMark } from "./Logo";
 import { chatThreads } from "../data/chat";
 
 const unreadTotal = chatThreads.reduce((s, t) => s + t.unread, 0);
@@ -36,11 +37,8 @@ export default function Layout() {
       {/* ===== Сайдбар ===== */}
       <aside className="sidebar">
         <Link to="/" className="side-brand" aria-label="АрендаСтройТюмень">
-          <span className="side-mark"><i className="ti ti-building-skyscraper" aria-hidden="true" /></span>
-          <span className="side-brand-text">
-            <b>АрендаСтрой</b>
-            <small>Телефония · CRM</small>
-          </span>
+          <span className="brand-full"><LogoFull height={32} /></span>
+          <span className="brand-mark"><LogoMark size={38} /></span>
         </Link>
 
         <nav className="side-nav">
@@ -98,9 +96,7 @@ export default function Layout() {
         </main>
 
         <footer className="ds-dark app-footer">
-          <span className="side-mark" style={{ width: 34, height: 34, fontSize: 17 }}>
-            <i className="ti ti-building-skyscraper" aria-hidden="true" />
-          </span>
+          <LogoMark size={34} />
           <div style={{ textAlign: "center", flex: 1, minWidth: 200 }}>
             <div className="fw8" style={{ color: "#fff" }}>Телефония · АрендаСтройТюмень</div>
             <div className="f12" style={{ color: "#7f8794" }}>Внутренняя система ©</div>
