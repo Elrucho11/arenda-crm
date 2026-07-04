@@ -173,7 +173,7 @@ export interface AccessUser {
   id: string; name: string; email: string; fullAccess: boolean; self?: boolean;
 }
 export const accessUsers: AccessUser[] = [
-  { id: "u1", name: "Valery Valeryevich", email: "lolx32@mail.ru", fullAccess: false },
+  { id: "u1", name: "Valery Valeryevich", email: "lolx32@mail.ru", fullAccess: true },
   { id: "u2", name: "Алексей", email: "batalov2509@gmail.com", fullAccess: true },
   { id: "u3", name: "Александр", email: "arendastroytyumen@gmail.com", fullAccess: true },
   { id: "u4", name: "Pavel", email: "batalovpavel009@gmail.com", fullAccess: true, self: true },

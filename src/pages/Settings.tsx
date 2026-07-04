@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PageHeader, Badge, IconCircle } from "../components/ui";
+import { PageHeader, IconCircle } from "../components/ui";
 import { accessUsers } from "../data/mock";
 import type { AccessUser } from "../data/mock";
 
@@ -55,6 +55,12 @@ function CardTitle({ icon, text }: { icon: string; text: string }) {
   );
 }
 
+interface Template {
+  id: string;
+  name: string;
+  text: string;
+}
+
 export default function Settings() {
   // Синхронизация контактов
   const [syncing, setSyncing] = useState(false);
@@ -67,6 +73,11 @@ export default function Settings() {
   // Интеграция с CRM
   const [crmEnabled, setCrmEnabled] = useState(false);
 
+  // Чат: приветствие Telegram
+  const [greeting, setGreeting] = useState(
+    "Здравствуйте! Спасибо, что написали — мы на связи и скоро ответим."
+  );
+
   // Сохранение настроек
   const [saved, setSaved] = useState(false);
   const saveSettings = () => {
@@ -74,6 +85,22 @@ export default function Settings() {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
+
+  // Шаблоны быстрых ответов
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [tplName, setTplName] = useState("");
+  const [tplText, setTplText] = useState("");
+  const addTemplate = () => {
+    if (!tplName.trim() || !tplText.trim()) return;
+    setTemplates((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), name: tplName.trim(), text: tplText.trim() },
+    ]);
+    setTplName("");
+    setTplText("");
+  };
+  const removeTemplate = (id: string) =>
+    setTemplates((prev) => prev.filter((t) => t.id !== id));
 
   // Управление правами пользователей
   const [users, setUsers] = useState<AccessUser[]>(accessUsers);
@@ -96,7 +123,7 @@ export default function Settings() {
 
       {/* Синхронизация контактов */}
       <div className="card card--pad mt-16">
-        <CardTitle icon="refresh" text="Синхронизация контактов" />
+        <CardTitle icon="phone" text="Синхронизация контактов" />
         <div className="mt-12">
           <button className="btn btn--primary" onClick={startSync} disabled={syncing}>
             <i className="ti ti-refresh" aria-hidden="true" />{" "}
@@ -105,7 +132,7 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Настройки звонков + Интеграция с CRM */}
+      {/* Настройки звонков + Чат: приветствие Telegram */}
       <div className="grid grid-2 mt-16">
         <div className="card card--pad">
           <CardTitle icon="phone" text="Настройки звонков" />
@@ -116,52 +143,121 @@ export default function Settings() {
         </div>
 
         <div className="card card--pad">
-          <CardTitle icon="plug-connected" text="Интеграция с CRM" />
+          <CardTitle icon="brand-telegram" text="Чат: приветствие Telegram" />
+          <div className="mt-12">
+            <label className="field-label">Текст приветствия на /start</label>
+            <textarea
+              className="input"
+              rows={3}
+              value={greeting}
+              onChange={(e) => setGreeting(e.target.value)}
+              style={{ resize: "vertical" }}
+            />
+            <div className="text-dim f12 mt-8">
+              Отправляется клиенту при первом запуске бота.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Интеграция с CRM + Настройка расчетов */}
+      <div className="grid grid-2 mt-16">
+        <div className="card card--pad">
+          <CardTitle icon="link" text="Интеграция с CRM" />
           <div className="row between mt-12" style={{ alignItems: "center" }}>
             <span className="text-dim">Включить интеграцию</span>
             <Toggle on={crmEnabled} onChange={setCrmEnabled} />
           </div>
           <div className="mt-12">
             <label className="field-label">API ключ CRM</label>
-            <input className="input" type="password" placeholder="Введите API ключ" />
+            <input className="input" type="text" autoComplete="off" placeholder="Введите API ключ" disabled={!crmEnabled} />
           </div>
           <div className="mt-12">
             <label className="field-label">Базовый URL CRM</label>
-            <input className="input" type="text" defaultValue="https://plntr.store" />
+            <input className="input" type="text" defaultValue="https://plntr.store" disabled={!crmEnabled} />
           </div>
         </div>
-      </div>
 
-      {/* Настройка расчетов */}
-      <div className="card card--pad mt-16">
-        <CardTitle icon="calculator" text="Настройка расчетов" />
-        <div className="grid grid-2 mt-12">
-          <div>
+        <div className="card card--pad">
+          <CardTitle icon="calculator" text="Настройка расчетов" />
+          <div className="mt-12">
             <label className="field-label">Диапазон скидки строительных лесов (%)</label>
             <input className="input" type="number" defaultValue={0} />
           </div>
-          <div>
+          <div className="mt-12">
             <label className="field-label">Диапазон скидки вышек-тур (%)</label>
             <input className="input" type="number" defaultValue={0} />
           </div>
         </div>
       </div>
 
-      {/* Сохранить */}
-      <div className="mt-16">
-        <button className="btn btn--primary btn--block" onClick={saveSettings}>
-          {saved ? "Сохранено ✓" : "СОХРАНИТЬ НАСТРОЙКИ"}
+      {/* Сохранить настройки */}
+      <div className="row mt-16" style={{ justifyContent: "flex-end" }}>
+        <button className="btn btn--primary" onClick={saveSettings}>
+          <i className={`ti ti-${saved ? "check" : "device-floppy"}`} aria-hidden="true" />{" "}
+          {saved ? "Сохранено" : "Сохранить настройки"}
         </button>
+      </div>
+
+      {/* Шаблоны быстрых ответов */}
+      <div className="card card--pad mt-16">
+        <span className="fw8 f15">Шаблоны быстрых ответов</span>
+        <div className="text-dim f13 mt-8">
+          Доступны всем операторам в чате. Переменная <code>{"{имя}"}</code> подставит имя клиента.
+        </div>
+
+        {templates.length === 0 ? (
+          <div className="text-dim f13 mt-12">Шаблонов пока нет.</div>
+        ) : (
+          <div className="grid mt-12" style={{ gap: 8 }}>
+            {templates.map((t) => (
+              <div key={t.id} className="row between" style={{
+                alignItems: "flex-start", gap: 12,
+                border: "1px solid var(--line)", borderRadius: "var(--radius-sm)", padding: "10px 12px",
+              }}>
+                <div style={{ minWidth: 0 }}>
+                  <div className="fw7 f13">{t.name}</div>
+                  <div className="text-dim f13" style={{ overflowWrap: "anywhere" }}>{t.text}</div>
+                </div>
+                <button className="icon-btn" aria-label="Удалить шаблон" onClick={() => removeTemplate(t.id)}>
+                  <i className="ti ti-trash" aria-hidden="true" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="row gap-10 mt-12 wrap" style={{ alignItems: "stretch" }}>
+          <input
+            className="input"
+            style={{ flex: "0 0 220px" }}
+            placeholder="Название"
+            value={tplName}
+            onChange={(e) => setTplName(e.target.value)}
+          />
+          <input
+            className="input"
+            style={{ flex: "1 1 260px" }}
+            placeholder="Текст шаблона (можно {имя})"
+            value={tplText}
+            onChange={(e) => setTplText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") addTemplate(); }}
+          />
+          <button className="btn btn--primary" onClick={addTemplate}>
+            <i className="ti ti-plus" aria-hidden="true" /> Добавить
+          </button>
+        </div>
       </div>
 
       {/* Управление правами пользователей */}
       <div className="card card--pad mt-16">
         <CardTitle icon="users-group" text="Управление правами пользователей" />
         <div className="mt-12">
+          <label className="field-label">Поиск пользователя</label>
           <input
             className="input"
             type="text"
-            placeholder="Поиск пользователя"
+            placeholder="Введите имя или email пользователя"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -170,42 +266,34 @@ export default function Settings() {
           <table className="tbl">
             <thead>
               <tr>
-                <th>ПОЛЬЗОВАТЕЛЬ</th>
-                <th>EMAIL</th>
-                <th>ПОЛНЫЙ ДОСТУП</th>
-                <th>СТАТУС</th>
+                <th>Пользователь</th>
+                <th>Email</th>
+                <th style={{ width: 150, textAlign: "right" }}>Полный доступ</th>
               </tr>
             </thead>
             <tbody>
               {shown.map((u) => (
                 <tr key={u.id}>
                   <td>
-                    <div className="fw7" style={{ maxWidth: 260, overflowWrap: "anywhere" }}>
+                    <div className="fw7" style={{ maxWidth: 320, overflowWrap: "anywhere" }}>
                       {u.name}
                     </div>
                   </td>
                   <td>
                     <span className="f13 text-dim">{u.email}</span>
                   </td>
-                  <td>
+                  <td style={{ textAlign: "right" }}>
                     {u.self ? (
                       <span className="text-dim f13">Недоступно</span>
                     ) : (
                       <Toggle on={u.fullAccess} onChange={(next) => toggleAccess(u.id, next)} />
                     )}
                   </td>
-                  <td>
-                    {u.fullAccess ? (
-                      <Badge tone="green">Активен</Badge>
-                    ) : (
-                      <Badge tone="amber">Ожидание</Badge>
-                    )}
-                  </td>
                 </tr>
               ))}
               {shown.length === 0 && (
                 <tr>
-                  <td colSpan={4}>
+                  <td colSpan={3}>
                     <span className="text-dim f13">Пользователи не найдены</span>
                   </td>
                 </tr>
