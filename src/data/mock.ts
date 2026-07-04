@@ -237,6 +237,23 @@ export const blacklist: BlacklistEntry[] = [
   { id: "b7", when: "2026-06-20T15:25:00", label: "вышка 22 4м на три дня тобольск звонил 20.06.2026", phone: "+79221002030", by: "Александр", reason: "Не указана", until: "permanent" },
 ];
 
+// --- Попытки дозвона заблокированных номеров ---
+export interface BlacklistAttempt {
+  id: string;
+  phone: string;
+  label: string;
+  lastAttemptAt: string;    // ISO
+  attempts: number;         // сколько раз пытался
+  blockedUntil: string | "permanent";
+}
+export const blacklistAttempts: BlacklistAttempt[] = [
+  { id: "at1", phone: "+79191452351", label: "вышка 8м на два дня тобольск", lastAttemptAt: "2026-06-26T09:14:00", attempts: 7, blockedUntil: "2026-07-22T10:01:00" },
+  { id: "at2", phone: "+79129995894", label: "цыгане леса на 5 дней парфенова", lastAttemptAt: "2026-06-26T08:02:00", attempts: 12, blockedUntil: "permanent" },
+  { id: "at3", phone: "+79833403900", label: "леса 1к для киносъёмок посмотреть", lastAttemptAt: "2026-06-25T17:40:00", attempts: 3, blockedUntil: "2026-06-28T15:31:00" },
+  { id: "at4", phone: "+79221002030", label: "вышка 22 4м на три дня тобольск", lastAttemptAt: "2026-06-25T12:20:00", attempts: 5, blockedUntil: "permanent" },
+  { id: "at5", phone: "+79334402452", label: "залупа леса для кино на 15 минут", lastAttemptAt: "2026-06-24T19:03:00", attempts: 9, blockedUntil: "permanent" },
+];
+
 // --- Пользователи (Настройки → Управление правами) ---
 export interface AccessUser {
   id: string; name: string; email: string; fullAccess: boolean; self?: boolean;
