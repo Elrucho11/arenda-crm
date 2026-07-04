@@ -1,8 +1,19 @@
 import { useMemo, useState } from "react";
-import { calculations as seed } from "../data/mock";
+import { calculations as seed, calls } from "../data/mock";
 import type { Calculation, CalcKind, EquipmentCategory } from "../types";
-import { PageHeader, Badge, Empty } from "../components/ui";
-import { money, money0, dateShort, timeHM } from "../lib/format";
+import { PageHeader, Badge, Empty, Modal } from "../components/ui";
+import { money, money0, dateShort, timeHM, phoneFmt } from "../lib/format";
+
+// Параметры формы, сохраняются вместе с расчётом — чтобы можно было редактировать
+export interface CalcParams {
+  category: EquipmentCategory;
+  kind: CalcKind;
+  kits: number; lenM: number; heightM: number; deck: string; decks: number;
+  extras: Record<string, boolean>;
+  towerH: string; towerQty: number;
+  start: string; days: number;
+  discountOn: boolean; discount: number; deliveryOn: boolean; delivery: number;
+}
 
 // ===== Параметры ценообразования (леса) =====
 const LESA_PARTS = [
@@ -41,35 +52,50 @@ function addDays(iso: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+type CalcRow = Calculation & { params?: CalcParams; attachedTo?: string | null };
+
 export default function Calculations() {
-  const [list, setList] = useState<Calculation[]>(seed);
+  const [list, setList] = useState<CalcRow[]>(seed);
   const [view, setView] = useState<"list" | "pick" | "form">("list");
   const [category, setCategory] = useState<EquipmentCategory>("Леса");
+  const [editing, setEditing] = useState<CalcRow | null>(null);
+  const [attachFor, setAttachFor] = useState<CalcRow | null>(null);
   const [expanded, setExpanded] = useState<Set<number>>(new Set([seed[0]?.id]));
 
-  function onSave(calc: Calculation) {
-    setList((l) => [calc, ...l]);
+  function onSave(calc: CalcRow) {
+    setList((l) => l.some((c) => c.id === calc.id)
+      ? l.map((c) => (c.id === calc.id ? { ...calc, attachedTo: c.attachedTo } : c))
+      : [calc, ...l]);
     setExpanded((s) => new Set([calc.id, ...s]));
+    setEditing(null);
     setView("list");
   }
   function toggle(id: number) {
     setExpanded((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   }
   function remove(id: number) { setList((l) => l.filter((c) => c.id !== id)); }
+  function startEdit(c: CalcRow) { setEditing(c); setCategory(c.category); setView("form"); }
+  function attachCall(phone: string) {
+    if (attachFor) setList((l) => l.map((c) => (c.id === attachFor.id ? { ...c, attachedTo: phone } : c)));
+    setAttachFor(null);
+  }
+  function detach(id: number) { setList((l) => l.map((c) => (c.id === id ? { ...c, attachedTo: null } : c))); }
 
   return (
     <div>
       <PageHeader eyebrow="Калькулятор аренды" title="Расчеты">
         {view === "list"
-          ? <button className="btn btn--primary" onClick={() => setView("pick")}><i className="ti ti-calculator" aria-hidden="true" /> Добавить расчет</button>
-          : <button className="btn btn--dark" onClick={() => setView("list")}><i className="ti ti-arrow-left" aria-hidden="true" /> Назад</button>}
+          ? <button className="btn btn--primary" onClick={() => { setEditing(null); setView("pick"); }}><i className="ti ti-calculator" aria-hidden="true" /> Добавить расчет</button>
+          : <button className="btn btn--dark" onClick={() => { setEditing(null); setView("list"); }}><i className="ti ti-arrow-left" aria-hidden="true" /> Назад</button>}
       </PageHeader>
 
       {view === "list" && (
         list.length ? (
           <div className="grid" style={{ gap: 16 }}>
             {list.map((c) => (
-              <CalcCard key={c.id} calc={c} open={expanded.has(c.id)} onToggle={() => toggle(c.id)} onDelete={() => remove(c.id)} />
+              <CalcCard key={c.id} calc={c} open={expanded.has(c.id)} onToggle={() => toggle(c.id)}
+                onDelete={() => remove(c.id)} onEdit={() => startEdit(c)}
+                onAttach={() => setAttachFor(c)} onDetach={() => detach(c.id)} />
             ))}
           </div>
         ) : <Empty icon="calculator" text="Пока нет расчетов" />
@@ -90,14 +116,43 @@ export default function Calculations() {
       )}
 
       {view === "form" && (
-        <CalcForm category={category} nextId={Math.max(0, ...list.map((c) => c.id)) + 1} onSave={onSave} onSwitch={setCategory} />
+        <CalcForm category={category} nextId={editing ? editing.id : Math.max(0, ...list.map((c) => c.id)) + 1}
+          initial={editing?.params} onSave={onSave} onSwitch={setCategory} />
       )}
+
+      {attachFor && <AttachModal onClose={() => setAttachFor(null)} onPick={attachCall} />}
     </div>
   );
 }
 
+// ===== Модалка привязки расчёта к звонку =====
+function AttachModal({ onClose, onPick }: { onClose: () => void; onPick: (phone: string) => void }) {
+  const [q, setQ] = useState("");
+  const rows = calls
+    .filter((c) => !q || c.clientPhone.includes(q) || (c.clientLabel ?? "").toLowerCase().includes(q.toLowerCase()))
+    .slice(0, 12);
+  return (
+    <Modal title="Прикрепить к звонку" onClose={onClose}>
+      <input className="input" placeholder="Поиск по номеру или подписи…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="grid mt-12" style={{ gap: 6 }}>
+        {rows.map((c) => (
+          <button key={c.id} className="open-link" style={{ display: "block", width: "100%", textAlign: "left", color: "var(--text)", padding: "8px 10px", border: "1px solid var(--line)", borderRadius: 10 }}
+            onClick={() => onPick(c.clientPhone)}>
+            <span className="fw7 f13">{phoneFmt(c.clientPhone)}</span>
+            {c.clientLabel && <span className="text-dim f12"> — {c.clientLabel}</span>}
+          </button>
+        ))}
+        {rows.length === 0 && <div className="text-dim f13" style={{ textAlign: "center", padding: 16 }}>Звонки не найдены</div>}
+      </div>
+    </Modal>
+  );
+}
+
 // ===== Карточка готового расчёта =====
-function CalcCard({ calc, open, onToggle, onDelete }: { calc: Calculation; open: boolean; onToggle: () => void; onDelete: () => void }) {
+function CalcCard({ calc, open, onToggle, onDelete, onEdit, onAttach, onDetach }: {
+  calc: CalcRow; open: boolean; onToggle: () => void; onDelete: () => void;
+  onEdit: () => void; onAttach: () => void; onDetach: () => void;
+}) {
   return (
     <div className="card card--pad">
       <div className="row between wrap gap-10">
@@ -105,13 +160,16 @@ function CalcCard({ calc, open, onToggle, onDelete }: { calc: Calculation; open:
           <b className="f15">Расчет #{calc.id}</b>
           <Badge tone="orange">{calc.category === "Леса" ? "Строительные леса" : calc.category}</Badge>
           <Badge tone="gray">{calc.kind}</Badge>
+          {calc.attachedTo && <Badge tone="green" dot>Прикреплён: {phoneFmt(calc.attachedTo)}</Badge>}
         </div>
         <div className="row gap-10" style={{ alignItems: "center" }}>
           <div style={{ textAlign: "right" }}>
             <div className="text-dim f12">Стоимость</div>
             <div className="fw8 f18">{money(calc.total)}</div>
           </div>
-          <button className="btn btn--dark btn--sm"><i className="ti ti-link" aria-hidden="true" /> Прикрепить</button>
+          {calc.attachedTo
+            ? <button className="btn btn--outline btn--sm" onClick={onDetach}><i className="ti ti-unlink" aria-hidden="true" /> Открепить</button>
+            : <button className="btn btn--dark btn--sm" onClick={onAttach}><i className="ti ti-link" aria-hidden="true" /> Прикрепить</button>}
           <button className="btn btn--outline btn--sm" onClick={onToggle}><i className={`ti ti-chevron-${open ? "up" : "down"}`} aria-hidden="true" /></button>
         </div>
       </div>
@@ -144,7 +202,7 @@ function CalcCard({ calc, open, onToggle, onDelete }: { calc: Calculation; open:
             <SummaryRow label="Итого" value={money(calc.total + calc.discount)} />
             <SummaryRow label="С учетом скидки" value={money(calc.total)} strong />
             <div className="row gap-8 mt-16">
-              <button className="btn btn--primary btn--sm"><i className="ti ti-edit" aria-hidden="true" /> Редактировать</button>
+              <button className="btn btn--primary btn--sm" onClick={onEdit} disabled={!calc.params} title={calc.params ? "" : "Редактирование доступно для расчётов, созданных в новой версии"}><i className="ti ti-edit" aria-hidden="true" /> Редактировать</button>
               <button className="btn btn--danger btn--sm" onClick={onDelete}><i className="ti ti-trash" aria-hidden="true" /> Удалить расчет</button>
             </div>
           </div>
@@ -165,32 +223,33 @@ function SummaryRow({ label, value, strong }: { label: string; value: string; st
 }
 
 // ===== Калькулятор =====
-function CalcForm({ category, nextId, onSave, onSwitch }: {
-  category: EquipmentCategory; nextId: number; onSave: (c: Calculation) => void; onSwitch: (c: EquipmentCategory) => void;
+function CalcForm({ category, nextId, initial, onSave, onSwitch }: {
+  category: EquipmentCategory; nextId: number; initial?: CalcParams;
+  onSave: (c: CalcRow) => void; onSwitch: (c: EquipmentCategory) => void;
 }) {
   const today = new Date().toISOString().slice(0, 10);
-  const [start, setStart] = useState(today);
-  const [days, setDays] = useState(1);
+  const [start, setStart] = useState(initial?.start ?? today);
+  const [days, setDays] = useState(initial?.days ?? 1);
   const end = addDays(start, days);
 
   // Леса
-  const [kind, setKind] = useState<CalcKind>("Комплекты");
-  const [kits, setKits] = useState(10);
-  const [lenM, setLenM] = useState(12);
-  const [heightM, setHeightM] = useState(4);
-  const [deck, setDeck] = useState("Без настила");
-  const [decks, setDecks] = useState(0);
-  const [extras, setExtras] = useState<Record<string, boolean>>({});
+  const [kind, setKind] = useState<CalcKind>(initial?.kind ?? "Комплекты");
+  const [kits, setKits] = useState(initial?.kits ?? 10);
+  const [lenM, setLenM] = useState(initial?.lenM ?? 12);
+  const [heightM, setHeightM] = useState(initial?.heightM ?? 4);
+  const [deck, setDeck] = useState(initial?.deck ?? "Без настила");
+  const [decks, setDecks] = useState(initial?.decks ?? 0);
+  const [extras, setExtras] = useState<Record<string, boolean>>(initial?.extras ?? {});
 
   // Вышки
-  const [towerH, setTowerH] = useState("4 м");
-  const [towerQty, setTowerQty] = useState(1);
+  const [towerH, setTowerH] = useState(initial?.towerH ?? "4 м");
+  const [towerQty, setTowerQty] = useState(initial?.towerQty ?? 1);
 
   // Скидка / доставка
-  const [discountOn, setDiscountOn] = useState(false);
-  const [discount, setDiscount] = useState(0);
-  const [deliveryOn, setDeliveryOn] = useState(false);
-  const [delivery, setDelivery] = useState(0);
+  const [discountOn, setDiscountOn] = useState(initial?.discountOn ?? false);
+  const [discount, setDiscount] = useState(initial?.discount ?? 0);
+  const [deliveryOn, setDeliveryOn] = useState(initial?.deliveryOn ?? false);
+  const [delivery, setDelivery] = useState(initial?.delivery ?? 0);
 
   const effKits = category === "Леса" && kind === "Метры"
     ? Math.max(1, Math.ceil(lenM / 3) * Math.ceil(heightM / 2))
@@ -254,6 +313,7 @@ function CalcForm({ category, nextId, onSave, onSwitch }: {
       discount: calc.disc,
       total: calc.withDiscount,
       attached: false,
+      params: { category, kind, kits, lenM, heightM, deck, decks, extras, towerH, towerQty, start, days, discountOn, discount, deliveryOn, delivery },
     });
   }
 
