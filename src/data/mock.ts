@@ -1,5 +1,5 @@
 // ===== Данные, снятые с боевого calls.plntr.store (1:1) =====
-import type { Calculation, Equipment } from "../types";
+import type { Calculation, Equipment, Delivery } from "../types";
 import { phoneKey } from "../lib/format";
 
 // --- Операторы (сотрудники) ---
@@ -293,6 +293,15 @@ export const calculations: Calculation[] = [
     ],
     fullPrice: 35100, perDay: 2193.75, deliveryPrice: 0, discount: 0, total: 8775, attached: false,
   },
+];
+
+// --- Доставки / забор оборудования ---
+export const deliveries: Delivery[] = [
+  { id: "d1", clientName: "Денис, ИП Попов", phone: "+79224753531", address: "ул. Чаркова 60", date: "2026-06-27", timeSlot: "09:00–12:00", driver: "Сергей", type: "delivery", status: "planned", comment: "Вышка 6м, занести во двор" },
+  { id: "d2", clientName: "Ирина — леса", phone: "+79088560120", address: "переулок Вербный 5", date: "2026-06-26", timeSlot: "14:00–16:00", driver: "Сергей", type: "delivery", status: "on-the-way" },
+  { id: "d3", clientName: "виброплита кулаково", phone: "+79058264734", address: "Кулаково, ул. Горького", date: "2026-06-26", timeSlot: "16:00–18:00", type: "delivery", status: "planned" },
+  { id: "d4", clientName: "Стройконсалтинг", phone: "+79829625030", address: "Холмы, участок 12", date: "2026-06-25", timeSlot: "10:00–12:00", driver: "Андрей", type: "pickup", status: "returned", comment: "Забрать мотопомпу" },
+  { id: "d5", clientName: "стойки 20 шт", phone: "+79827819251", address: "ул. Пермякова 50", date: "2026-06-25", timeSlot: "12:00–14:00", driver: "Андрей", type: "delivery", status: "delivered" },
 ];
 
 // --- Номенклатура (для настроек/калькулятора) ---
