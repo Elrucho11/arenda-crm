@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { ProdClient } from "../data/mock";
 import { clients, clientStats } from "../data/mock";
 import { PageHeader, Stat, Badge, Avatar, Stars, Modal, Empty } from "../components/ui";
@@ -14,6 +15,7 @@ interface Filters {
 const DEFAULT_FILTERS: Filters = { q: "", rating: "all", status: "all", sort: "contact" };
 
 export default function Clients() {
+  const navigate = useNavigate();
   const [list, setList] = useState<ProdClient[]>(clients);
 
   // фильтры применяются по кнопке: черновик -> применённые
@@ -141,7 +143,9 @@ export default function Clients() {
             </thead>
             <tbody>
               {rows.map((c) => (
-                <tr key={c.id}>
+                <tr key={c.id} onClick={() => navigate(`/clients/${c.id}`)} style={{ cursor: "pointer" }}
+                  title="Открыть карточку клиента" tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter") navigate(`/clients/${c.id}`); }}>
                   <td>
                     <div className="row gap-12">
                       <Avatar name={c.name} size={36} />

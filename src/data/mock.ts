@@ -146,6 +146,75 @@ export const clients: ProdClient[] = [
 ];
 export const clientStats = { total: 1788, active: 1788, withCalls: 0, blacklisted: 286 };
 
+// --- Расширенные данные карточки клиента ---
+export interface ClientPhone { phone: string; primary: boolean; description?: string; }
+export interface ClientDetail {
+  id: string;
+  name: string;
+  rating: number;
+  status: "Активен" | "В черном списке";
+  phones: ClientPhone[];
+  company?: string;
+  address?: string;
+  notes?: string;
+  crmLink?: string;
+  totalCalls: number;
+  successfulCalls: number;
+  callsThisMonth: number;
+  lastContactAt: string;
+}
+
+// Доп. поля для нескольких клиентов (несколько номеров, заметки, статистика).
+const CLIENT_EXTRAS: Record<string, Partial<ClientDetail>> = {
+  k3: {
+    company: "Частное лицо", address: "ул. Падерина", notes: "Должник 22 028,60 ₽. Ватсап. Жадный заказчик. Леса 18к+18н на 14 дней, залог 700.",
+    crmLink: "https://plntr.store/clients/3",
+    phones: [
+      { phone: "+79224602525", primary: true, description: "основной" },
+      { phone: "+79224600000", primary: false, description: "ватсап" },
+    ],
+    totalCalls: 4, successfulCalls: 3, callsThisMonth: 0,
+  },
+  k8: {
+    company: "Стройка (Вербный)", address: "переулок Вербный 5", notes: "Леса 6на21 на 10 дней, 8800 +7н +1500, залог 800.",
+    totalCalls: 1, successfulCalls: 1, callsThisMonth: 1,
+  },
+  k9: {
+    company: "ИП Попов", address: "ул. Чаркова 60", notes: "Постоянный клиент. Вышки, леса. Оплата по счёту.",
+    crmLink: "https://plntr.store/clients/9",
+    phones: [
+      { phone: "+79224753531", primary: true, description: "Денис" },
+      { phone: "+79224753500", primary: false, description: "бухгалтерия" },
+    ],
+    totalCalls: 3, successfulCalls: 3, callsThisMonth: 2,
+  },
+  k10: {
+    company: "Стройконсалтинг", address: "Холмы", notes: "Мотопомпа, компрессор. Берёт технику регулярно.",
+    totalCalls: 7, successfulCalls: 6, callsThisMonth: 1,
+  },
+};
+
+export function clientDetail(id: string): ClientDetail | null {
+  const base = clients.find((c) => c.id === id);
+  if (!base) return null;
+  const ex = CLIENT_EXTRAS[id] ?? {};
+  return {
+    id: base.id,
+    name: base.name,
+    rating: base.rating,
+    status: base.status,
+    phones: ex.phones ?? [{ phone: base.phone, primary: true }],
+    company: ex.company,
+    address: ex.address,
+    notes: ex.notes,
+    crmLink: ex.crmLink,
+    totalCalls: ex.totalCalls ?? 0,
+    successfulCalls: ex.successfulCalls ?? 0,
+    callsThisMonth: ex.callsThisMonth ?? 0,
+    lastContactAt: base.lastContactAt,
+  };
+}
+
 // --- Чёрный список ---
 export interface BlacklistEntry {
   id: string;

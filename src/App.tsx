@@ -5,6 +5,7 @@ import Calls from "./pages/Calls";
 import NumberDetail from "./pages/NumberDetail";
 import Chat from "./pages/Chat";
 import Clients from "./pages/Clients";
+import ClientDetail from "./pages/ClientDetail";
 import Calculations from "./pages/Calculations";
 import Delivery from "./pages/Delivery";
 import Blacklist from "./pages/Blacklist";
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="calls/:phone" element={<NumberDetail />} />
         <Route path="chats" element={<Chat />} />
         <Route path="clients" element={<Clients />} />
+        <Route path="clients/:id" element={<ClientDetail />} />
         <Route path="calculations" element={<Calculations />} />
         <Route path="delivery" element={<Delivery />} />
         <Route path="blacklist" element={<Blacklist />} />
